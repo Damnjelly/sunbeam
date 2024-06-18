@@ -14,8 +14,15 @@ if [ $# -eq 0 ]; then
             {
                 name: "session",
                 title: "Bitwarden Session",
-                type: "string"
-            }
+                type: "string",
+								optional: true
+            },
+						{
+							name: "sessionPath",
+							title: "Path to Bitwarden Session",
+							type: "string",
+							optional: true
+						}
         ],
         commands: [
             {
@@ -36,8 +43,12 @@ fi
 
 BW_SESSION=$(echo "$1" | jq -r '.preferences.session')
 if [ "$BW_SESSION" = "null" ]; then
-    echo "Bitwarden session not found. Please set it in your config." >&2
-    exit 1
+		BW_SESSION=$(echo "$1" | jq -r '.preferences.sessionPath')
+		if [ "$BW_SESSION" = "null" ]; then
+				echo "Session token not set. Please set it in the sunbeam config file." >&2
+				exit 1
+		fi
+		BW_SESSION=$(cat "$BW_SESSION")
 fi
 
 COMMAND=$(echo "$1" | jq -r '.command')
