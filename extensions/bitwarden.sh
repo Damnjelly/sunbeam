@@ -14,22 +14,20 @@ if [ $# -eq 0 ]; then
             {
                 name: "session",
                 title: "Bitwarden Session",
-                type: "string",
-								optional: true
-            },
-						{
-							name: "sessionPath",
-							title: "Path to Bitwarden Session",
-							type: "string",
-							optional: true
-						}
+                type: "string"
+            }
         ],
         commands: [
             {
                 name: "list-passwords",
                 title: "List Passwords",
                 mode: "filter"
-            }
+            },
+						{
+								name: "unlock",
+								title: "Unlock vault",
+								mode: "tty"
+						}
         ]
     }'
     exit 0
@@ -43,17 +41,13 @@ fi
 
 BW_SESSION=$(echo "$1" | jq -r '.preferences.session')
 if [ "$BW_SESSION" = "null" ]; then
-		BW_SESSION=$(echo "$1" | jq -r '.preferences.sessionPath')
-		if [ "$BW_SESSION" = "null" ]; then
-				echo "Session token not set. Please set it in the sunbeam config file." >&2
-				exit 1
-		fi
-		BW_SESSION=$(cat "$BW_SESSION")
+    echo "Bitwarden session not found. Please set it in your config." >&2
+    exit 1
 fi
 
 COMMAND=$(echo "$1" | jq -r '.command')
 if [ "$COMMAND" = "list-passwords" ]; then
-    bkt --ttl=1d -- bw --nointeraction list items --session "$BW_SESSION" | jq 'map({
+    bw --nointeraction list items --session "$BW_SESSION" | jq 'map({
         title: .name,
         subtitle: (.login.username // ""),
         actions: [
@@ -72,4 +66,8 @@ if [ "$COMMAND" = "list-passwords" ]; then
             }
         ]
     }) | { items: .}'
+elif [ "$COMMAND" = "unlock" ]; then
+	SESSIONTOKEN=$(bw unlock "$PASSWORD" | grep -oP -m 1 '".*?"' | tr -d '"')
+		cat $HOME/.config/sunbeam/sunbeam.json | jq --arg SESSION "$SESSIONTOKEN" '.extensions.bitwarden.preferences.session |= $SESSION' | tee $HOME/.config/sunbeam/sunbeam.json
+
 fi
