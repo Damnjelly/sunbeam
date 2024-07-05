@@ -47,7 +47,7 @@ fi
 
 COMMAND=$(echo "$1" | jq -r '.command')
 if [ "$COMMAND" = "list-passwords" ]; then
-    bw --nointeraction list items --session "$BW_SESSION" | jq 'map({
+    bkt --ttl=1d -- bw --nointeraction list items --session "$BW_SESSION" | jq 'map({
         title: .name,
         subtitle: (.login.username // ""),
         actions: [
